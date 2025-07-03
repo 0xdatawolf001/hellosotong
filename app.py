@@ -54,7 +54,10 @@ def get_worker_url(gateway_url, block):
         return None
 
 def simplified_decode_log(log, abi=None):
-    """Decodes log data using a simplified, library-free approach."""
+    """
+    Decodes log data using a simplified, library-free approach.
+    Ensures raw topic and data fields are always included in the output.
+    """
     decoded = {}
     
     if not abi:
@@ -63,18 +66,26 @@ def simplified_decode_log(log, abi=None):
         decoded['data'] = log['data']
         return decoded
 
+    # ABI case: First, add the raw topics and data to ensure they are always available.
+    for i, topic in enumerate(log['topics']):
+        decoded[f'topic{i}'] = topic
+    decoded['data'] = log['data']
+
+    # Then, proceed with decoding based on the ABI, which will add named fields.
     event_abi = abi['inputs']
     indexed_inputs = [i for i in event_abi if i['indexed']]
     non_indexed_inputs = [i for i in event_abi if not i['indexed']]
     
     for i, item in enumerate(indexed_inputs):
-        raw_topic = log['topics'][i + 1]
-        if item['type'] == 'address':
-            decoded[item['name']] = f"0x{raw_topic[-40:]}"
-        elif item['type'].startswith(('uint', 'int')):
-            decoded[item['name']] = int(raw_topic, 16)
-        else:
-            decoded[item['name']] = raw_topic
+        # topic0 is the event signature, so indexed inputs start from topics[1]
+        if (i + 1) < len(log['topics']):
+            raw_topic = log['topics'][i + 1]
+            if item['type'] == 'address':
+                decoded[item['name']] = f"0x{raw_topic[-40:]}"
+            elif item['type'].startswith(('uint', 'int')):
+                decoded[item['name']] = int(raw_topic, 16)
+            else:
+                decoded[item['name']] = raw_topic
 
     if non_indexed_inputs:
         if len(non_indexed_inputs) == 1:
@@ -84,6 +95,7 @@ def simplified_decode_log(log, abi=None):
              else:
                  decoded[item['name']] = log['data']
         else:
+            # If multiple non-indexed fields, just expose the raw data string under a generic key
             decoded['non_indexed_data'] = log['data']
             
     return decoded
@@ -170,7 +182,7 @@ contract_address = st.sidebar.text_input(
 st.sidebar.subheader("Event Topic0 Hashes")
 for i, topic in enumerate(st.session_state.topics):
     st.session_state.topics[i] = st.sidebar.text_input(
-        f"Topic {i+1}", value=topic, key=f"topic_{i}",
+        f"Topic0 ID: {i+1}", value=topic, key=f"topic_{i}",
         help="The unique signature hash of the event."
     )
 
