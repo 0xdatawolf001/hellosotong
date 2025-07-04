@@ -21,7 +21,9 @@ CHAINS = {
     "Arbitrum": "arbitrum-one",
     "Optimism": "optimism-mainnet",
     "Avalanche": "avalanche-mainnet",
-    "Base": "base-mainnet"
+    "Base": "base-mainnet",
+    "Monad Testnet": "monad-testnet",
+    "Berachain": "berachain-mainnet"
 }
 BASE_GATEWAY_URL = "https://v2.archive.subsquid.io/network/"
 
